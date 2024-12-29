@@ -38,11 +38,11 @@ print_telegram_icon() {
 }
 
 display_ascii() {
-    echo -e "    ${RED}  __           __  _   _       _       _   _____ ${RESET}"
-    echo -e "    ${GREEN}\ \         / / | | | |     | |     | | | |___|  ${RESET}"
-    echo -e "    ${BLUE}  \ \   _   / /  | | | |     | |     | | | |=  ${RESET}"
-    echo -e "    ${YELLOW} \ \ /_\ / /   | | |_|___  |_|___  | | |_|___ ${RESET}"
-    echo -e "    ${MAGENTA} \_______/    |_| |_____| |_____| |_| |_____|  ${RESET}"
+    echo -e "    ${RED}  __           __   _   _       _       _   _____ ${RESET}"
+    echo -e "    ${GREEN} \ \         / /  | | | |     | |     | | | |___|  ${RESET}"
+    echo -e "    ${BLUE}  \ \   _   / /   | | | |     | |     | | | |=  ${RESET}"
+    echo -e "    ${YELLOW}  \ \ /_\ / /    | | |_|___  |_|___  | | |_|___ ${RESET}"
+    echo -e "    ${MAGENTA}   \_______/     |_| |_____| |_____| |_| |_____|  ${RESET}"
 }
 
 show() {
@@ -88,17 +88,11 @@ install_update_node() {
     ARCH=$(uname -m)
     download_required=true
 
-    if [ "$ARCH" == "x86_64" ]; then
-        if [ -d "heminetwork_${LATEST_VERSION}_linux_amd64" ]; then
-            show "Latest version for x86_64 is already downloaded. Skipping download."
-            cd "heminetwork_${LATEST_VERSION}_linux_amd64" || { show "Failed to change directory."; exit 1; }
-            download_required=false  # Set flag to false
-        fi
-    elif [ "$ARCH" == "arm64" ]; then
+    if [ "$ARCH" == "aarch64" ]; then
         if [ -d "heminetwork_${LATEST_VERSION}_linux_arm64" ]; then
-            show "Latest version for arm64 is already downloaded. Skipping download."
+            show "Latest version for ARM64 is already downloaded. Skipping download."
             cd "heminetwork_${LATEST_VERSION}_linux_arm64" || { show "Failed to change directory."; exit 1; }
-            download_required=false  # Set flag to false
+            download_required=false
         fi
     else
         show "Unsupported architecture: $ARCH"
@@ -106,20 +100,17 @@ install_update_node() {
     fi
 
     if [ "$download_required" = true ]; then
-        if [ "$ARCH" == "x86_64" ]; then
-            show "Downloading for x86_64 architecture..."
-            wget --quiet --show-progress "https://github.com/hemilabs/heminetwork/releases/download/$LATEST_VERSION/heminetwork_${LATEST_VERSION}_linux_amd64.tar.gz" -O "heminetwork_${LATEST_VERSION}_linux_amd64.tar.gz"
-            tar -xzf "heminetwork_${LATEST_VERSION}_linux_amd64.tar.gz" > /dev/null
-            cd "heminetwork_${LATEST_VERSION}_linux_amd64" || { show "Failed to change directory."; exit 1; }
-        elif [ "$ARCH" == "arm64" ]; then
-            show "Downloading for arm64 architecture..."
-            wget --quiet --show-progress "https://github.com/hemilabs/heminetwork/releases/download/$LATEST_VERSION/heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz" -O "heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz"
-            tar -xzf "heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz" > /dev/null
-            cd "heminetwork_${LATEST_VERSION}_linux_arm64" || { show "Failed to change directory."; exit 1; }
-        fi
+        show "Downloading for ARM64 architecture..."
+        wget --quiet --show-progress "https://github.com/hemilabs/heminetwork/releases/download/$LATEST_VERSION/heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz" -O "heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz"
+        tar -xzf "heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz" > /dev/null
+        cd "heminetwork_${LATEST_VERSION}_linux_arm64" || { show "Failed to change directory."; exit 1; }
     else
         show "Skipping download as the latest version is already present."
     fi
+
+    echo -e "${GREEN}✔️ Node installation or update complete.${RESET}"
+fi
+
 
     echo
     show "Select only one option:"
