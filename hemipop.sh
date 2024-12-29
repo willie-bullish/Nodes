@@ -1,4 +1,4 @@
-#!/data/data/com.termux/files/usr/bin/bash
+#!/bin/bash
 
 # Color and formatting definitions
 RED='\033[0;31m'
@@ -10,6 +10,7 @@ MAGENTA='\033[0;35m'
 RESET='\033[0m'
 
 # Icons for menu options
+ICON_TELEGRAM="🚀"
 ICON_INSTALL="🛠️"
 ICON_LOGS="📄"
 ICON_STOP="⏹️"
@@ -21,23 +22,27 @@ ICON_EXIT="❌"
 
 # Functions to draw borders and display menu
 draw_top_border() {
-    echo -e "${CYAN}╔═══════════════════════════════════════════════════════════╗${RESET}"
+    echo -e "${CYAN}╔══════════════════════════════════════════════════════╗${RESET}"
 }
 
 draw_middle_border() {
-    echo -e "${CYAN}╠═══════════════════════════════════════════════════════════╣${RESET}"
+    echo -e "${CYAN}╠══════════════════════════════════════════════════════╣${RESET}"
 }
 
 draw_bottom_border() {
-    echo -e "${CYAN}╚═══════════════════════════════════════════════════════════╝${RESET}"
+    echo -e "${CYAN}╚══════════════════════════════════════════════════════╝${RESET}"
+}
+
+print_telegram_icon() {
+    echo -e "          ${MAGENTA}${ICON_TELEGRAM} Follow us on Telegram!${RESET}"
 }
 
 display_ascii() {
     echo -e "    ${RED}  __           __  _   _       _       _   _____ ${RESET}"
-    echo -e "    ${GREEN}  \ \         / / | | | |     | |     | | | |___|  ${RESET}"
-    echo -e "    ${BLUE}   \ \   _   / /  | | | |     | |     | | | |=  ${RESET}"
-    echo -e "    ${YELLOW}    \ \ /_\ / /   | | |_|___  |_|___  | | |_|___ ${RESET}"
-    echo -e "    ${MAGENTA}     \_______/    |_| |_____| |_____| |_| |_____|  ${RESET}"
+    echo -e "    ${GREEN}\ \         / / | | | |     | |     | | | |___|  ${RESET}"
+    echo -e "    ${BLUE}  \ \   _   / /  | | | |     | |     | | | |=  ${RESET}"
+    echo -e "    ${YELLOW} \ \ /_\ / /   | | |_|___  |_|___  | | |_|___ ${RESET}"
+    echo -e "    ${MAGENTA} \_______/    |_| |_____| |_____| |_| |_____|  ${RESET}"
 }
 
 show() {
@@ -48,7 +53,8 @@ show() {
 install_jq() {
     if ! command -v jq &> /dev/null; then
         show "jq not found, installing..."
-        pkg update && pkg install -y jq
+        sudo apt-get update
+        sudo apt-get install -y jq > /dev/null 2>&1
         if [ $? -ne 0 ]; then
             show "Failed to install jq. Please check your package manager."
             exit 1
@@ -77,16 +83,22 @@ install_update_node() {
     echo -e "${GREEN}🛠️  Installing or Updating Node...${RESET}"
     
     install_jq
-    check_latest_version
+    check_latest_version  # Function to fetch the latest version
 
     ARCH=$(uname -m)
     download_required=true
 
-    if [ "$ARCH" == "aarch64" ]; then
+    if [ "$ARCH" == "x86_64" ]; then
+        if [ -d "heminetwork_${LATEST_VERSION}_linux_amd64" ]; then
+            show "Latest version for x86_64 is already downloaded. Skipping download."
+            cd "heminetwork_${LATEST_VERSION}_linux_amd64" || { show "Failed to change directory."; exit 1; }
+            download_required=false  # Set flag to false
+        fi
+    elif [ "$ARCH" == "arm64" ]; then
         if [ -d "heminetwork_${LATEST_VERSION}_linux_arm64" ]; then
-            show "Latest version for ARM64 is already downloaded. Skipping download."
+            show "Latest version for arm64 is already downloaded. Skipping download."
             cd "heminetwork_${LATEST_VERSION}_linux_arm64" || { show "Failed to change directory."; exit 1; }
-            download_required=false
+            download_required=false  # Set flag to false
         fi
     else
         show "Unsupported architecture: $ARCH"
@@ -94,10 +106,19 @@ install_update_node() {
     fi
 
     if [ "$download_required" = true ]; then
-        show "Downloading for ARM64 architecture..."
-        wget --quiet --show-progress "https://github.com/hemilabs/heminetwork/releases/download/$LATEST_VERSION/heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz" -O "heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz"
-        tar -xzf "heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz" > /dev/null
-        cd "heminetwork_${LATEST_VERSION}_linux_arm64" || { show "Failed to change directory."; exit 1; }
+        if [ "$ARCH" == "x86_64" ]; then
+            show "Downloading for x86_64 architecture..."
+            wget --quiet --show-progress "https://github.com/hemilabs/heminetwork/releases/download/$LATEST_VERSION/heminetwork_${LATEST_VERSION}_linux_amd64.tar.gz" -O "heminetwork_${LATEST_VERSION}_linux_amd64.tar.gz"
+            tar -xzf "heminetwork_${LATEST_VERSION}_linux_amd64.tar.gz" > /dev/null
+            cd "heminetwork_${LATEST_VERSION}_linux_amd64" || { show "Failed to change directory."; exit 1; }
+        elif [ "$ARCH" == "arm64" ]; then
+            show "Downloading for arm64 architecture..."
+            wget --quiet --show-progress "https://github.com/hemilabs/heminetwork/releases/download/$LATEST_VERSION/heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz" -O "heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz"
+            tar -xzf "heminetwork_${LATEST_VERSION}_linux_arm64.tar.gz" > /dev/null
+            cd "heminetwork_${LATEST_VERSION}_linux_arm64" || { show "Failed to change directory."; exit 1; }
+        fi
+    else
+        show "Skipping download as the latest version is already present."
     fi
 
     echo
@@ -117,24 +138,117 @@ install_update_node() {
         cat ~/popm-address.json
         echo
         read -p "Have you saved the above details? (y/N): " saved
+        echo
         if [[ "$saved" =~ ^[Yy]$ ]]; then
             pubkey_hash=$(jq -r '.pubkey_hash' ~/popm-address.json)
             show "Join: https://discord.gg/hemixyz"
             show "Request faucet from faucet channel to this address: $pubkey_hash"
+            echo
+            read -p "Have you requested faucet? (y/N): " faucet_requested
+            if [[ "$faucet_requested" =~ ^[Yy]$ ]]; then
+                priv_key=$(jq -r '.private_key' ~/popm-address.json)
+                read -p "Enter static fee (numerical only, recommended: 100-200): " static_fee
+                echo
+            else
+                show "Faucet request not completed. Exiting."
+                exit 1
+            fi
         else
             show "Details not saved. Exiting."
             exit 1
         fi
+
     elif [ "$wallet_choice" == "2" ]; then
         read -p "Enter your Private key: " priv_key
+        read -p "Enter static fee (numerical only, recommended: 100-200): " static_fee
         echo
     else
         show "Invalid choice for wallet option."
         exit 1
     fi
 
+    if systemctl is-active --quiet hemi.service; then
+        show "hemi.service is currently running. Stopping and disabling it..."
+        sudo systemctl stop hemi.service
+        sudo systemctl disable hemi.service
+    else
+        show "hemi.service is not running."
+    fi
+
+    cat << EOF | sudo tee /etc/systemd/system/hemi.service > /dev/null
+[Unit]
+Description=Hemi Network popmd Service
+After=network.target
+
+[Service]
+WorkingDirectory=$(pwd)
+ExecStart=$(pwd)/popmd
+Environment="POPM_BFG_REQUEST_TIMEOUT=60s"
+Environment="POPM_BTC_PRIVKEY=$priv_key"
+Environment="POPM_STATIC_FEE=$static_fee"
+Environment="POPM_BFG_URL=wss://testnet.rpc.hemi.network/v1/ws/public"
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    sudo systemctl daemon-reload
+    sudo systemctl enable hemi.service
+    sudo systemctl start hemi.service
     echo
-    show "Node setup complete. PoP mining is ready!"
+    show "PoP mining is successfully started"
+    echo
+    read -p "Press Enter to return to the main menu..."
+}
+
+view_logs() {
+    echo -e "${GREEN}📄 Viewing Logs...${RESET}"
+    sudo journalctl -u hemi.service -f -n 50
+    echo
+    read -p "Press Enter to return to the main menu..."
+}
+
+view_wallet_info() {
+    echo -e "${GREEN}💰 Viewing Wallet Information...${RESET}"
+    if [ -f ~/popm-address.json ]; then
+        cat ~/popm-address.json
+    else
+        echo -e "${RED}❌ Wallet information not found.${RESET}"
+    fi
+    echo
+    read -p "Press Enter to return to the main menu..."
+}
+
+change_service_parameters() {
+    echo -e "${GREEN}♻️  Changing Service Parameters...${RESET}"
+    read -p "Enter new static fee (numerical only, recommended: 100-200): " new_static_fee
+    read -p "Enter your Private Key: " new_priv_key
+
+    sudo systemctl stop hemi.service
+    sudo sed -i "s|Environment=\"POPM_STATIC_FEE=.*\"|Environment=\"POPM_STATIC_FEE=$new_static_fee\"|" /etc/systemd/system/hemi.service
+    sudo sed -i "s|Environment=\"POPM_BTC_PRIVKEY=.*\"|Environment=\"POPM_BTC_PRIVKEY=$new_priv_key\"|" /etc/systemd/system/hemi.service
+
+    sudo systemctl daemon-reload
+    sudo systemctl start hemi.service
+
+    echo -e "${GREEN}Service parameters updated and service restarted.${RESET}"
+    echo
+    read -p "Press Enter to return to the main menu..."
+}
+
+stop_node() {
+    echo -e "${YELLOW}⏹️  Stopping Node...${RESET}"
+    sudo systemctl stop hemi.service
+    echo -e "${GREEN}Node stopped successfully.${RESET}"
+    echo
+    read -p "Press Enter to return to the main menu..."
+}
+
+start_node() {
+    echo -e "${GREEN}▶️  Starting Node...${RESET}"
+    sudo systemctl start hemi.service
+    echo -e "${GREEN}Node started successfully.${RESET}"
     echo
     read -p "Press Enter to return to the main menu..."
 }
@@ -144,13 +258,27 @@ while true; do
     show_menu() {
         clear
         draw_top_border
-        echo -e "Welcome to the Hemi Network Node Management"
+        display_ascii
         draw_middle_border
-        echo -e "${YELLOW}Please choose an option:${RESET}"
-        echo -e "1. Install/Update Node"
-        echo -e "0. Exit"
+        print_telegram_icon
+        echo -e "${CYAN}║${RESET}"
+        echo -e "    ${BLUE}Welcome to the Hemi Network Node Management${RESET}"
+        echo -e "    ${GREEN}Manage your node efficiently and easily.${RESET}"
+        echo -e "${CYAN}║${RESET}"
+        draw_middle_border
+        echo -e "    ${BLUE}Subscribe to our channel: ${YELLOW}https://t.me/Bullish_corner${RESET}"
+        draw_middle_border
+        echo -e "    ${YELLOW}Please choose an option:${RESET}"
+        echo
+        echo -e "    ${CYAN}1.${RESET} ${ICON_INSTALL} Install/Update Node"
+        echo -e "    ${CYAN}2.${RESET} ${ICON_LOGS} View Service Logs"
+        echo -e "    ${CYAN}3.${RESET} ${ICON_WALLET} View Wallet Information"
+        echo -e "    ${CYAN}4.${RESET} ${ICON_RESTART} Change Service Parameters"
+        echo -e "    ${CYAN}5.${RESET} ${ICON_STOP} Stop Node"
+        echo -e "    ${CYAN}6.${RESET} ${ICON_START} Start Node"
+        echo -e "    ${CYAN}0.${RESET} ${ICON_EXIT} Exit"
         draw_bottom_border
-        echo -ne "${YELLOW}Enter your choice [0-1]:${RESET} "
+        echo -ne "    ${YELLOW}Enter your choice [0-6]:${RESET} "
         read choice
     }
 
@@ -158,6 +286,11 @@ while true; do
 
     case $choice in
         1) install_update_node ;;
+        2) view_logs ;;
+        3) view_wallet_info ;;
+        4) change_service_parameters ;;
+        5) stop_node ;;
+        6) start_node ;;
         0) echo -e "${GREEN}❌ Exiting...${RESET}"; exit 0 ;;
         *) echo -e "${RED}❌ Invalid option. Please try again.${RESET}"; sleep 2 ;;
     esac
