@@ -39,10 +39,10 @@ print_telegram_icon() {
 
 display_ascii() {
     echo -e "    ${RED}  __           __  _   _       _       _   _____ ${RESET}"
-    echo -e "    ${GREEN} \ \         / / | | | |     | |     | | | |___|  ${RESET}"
-    echo -e "    ${BLUE}  \ \   _   / /  | | | |     | |     | | | |=  ${RESET}"
-    echo -e "    ${YELLOW}  \ \ /_\ / /   | | |_|___  |_|___  | | |_|___ ${RESET}"
-    echo -e "    ${MAGENTA}  \_______/    |_| |_____| |_____| |_| |_____|  ${RESET}"
+    echo -e "    ${GREEN}  \ \         / / | | | |     | |     | | | |___|  ${RESET}"
+    echo -e "    ${BLUE}   \ \   _   / /  | | | |     | |     | | | |=  ${RESET}"
+    echo -e "    ${YELLOW}    \ \ /_\ / /   | | |_|___  |_|___  | | |_|___ ${RESET}"
+    echo -e "    ${MAGENTA}     \_______/    |_| |_____| |_____| |_| |_____|  ${RESET}"
 }
 
 show() {
